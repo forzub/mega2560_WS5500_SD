@@ -1,0 +1,139 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>5G-curtains mind control</title>
+  <link href="css/style.css" rel="stylesheet" type="text/css" />
+  <script type="text/javascript" src="js/jquery.js"></script>
+  <!-- <script type="text/javascript" src="js/site.js"></script> -->
+</head>
+<body class="gradient_bk">
+	<div class="svg-bk">
+	    <div class="svgbx">
+	            <svg > <!-- viewBox='0 0 100 100' -->
+	              <defs>
+	                  <linearGradient id="SVGID_1" gradientUnits="userSpaceOnUse" x1="0" y1="20%" x2="0" y2="0%">
+	                        <stop  offset="0" style="stop-color:#000000;stop-opacity:0"/>
+	                        <stop  offset="1" style="stop-color:#000000"/>
+	                  </linearGradient>
+	                  <linearGradient id="SVGID_2" gradientUnits="userSpaceOnUse" x1="0" y1="80%" x2="0" y2="100%">
+	                        <stop  offset="0" style="stop-color:#000000;stop-opacity:0"/>
+	                        <stop  offset="1" style="stop-color:#000000"/>
+	                  </linearGradient>
+	                  <mask id='mask-1' x='0' y='0' width='100%' height='100%'>
+	                      <rect id='main-rect0' x='0' y='0' width='100%' height='100%' fill='#fff' />
+	                      <rect id='main-rect1' x='0' y='0' width='100%' height='20%' fill='url(#SVGID_1)' /> 
+	                      <rect id='main-rect2' x='0' y='80%' width='100%' height='20%' fill='url(#SVGID_2)' />
+	                  </mask>
+	              </defs>
+	              
+	              <image width='100%' height='100%' xlink:href='https://source.unsplash.com/collection/827743/1200x600' mask='url(#mask-1)' />
+	          </svg> 
+	      </div>
+	  </div>
+	  
+	  <div class="header">
+	    <div class="header_wrp">
+	      <div class="menu">
+	        <a href="\">Управление</a>
+	        <a href="pult.htm">Расписание</a>
+	        <a class="active" href="setup.htm">Настройка</a>
+	        <a href="/edit">Редактор</a>
+	      </div>
+	    </div>
+	  </div>
+
+	  <div class="bodywrp">
+	  	<div class="tabwrp">
+		  	<table class="setup-tab">
+	  		<tbody>
+	  			<tr><td class="ip">ip адрес:</td><td><input name="ip" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"></td></tr>
+	  			<tr><td class="dns">dns адрес:</td><td><input name="dns" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"></td></tr>
+	  			<tr><td class="pos-max">Значение датчика при полностью открытом положении:</td><td><input name="pos_max_open" pattern="[0-9]{1,4}"></td></tr>
+	  			<tr><td class="pos-min">Значение датчика при полностью закрытом положении:</td><td><input name="pos_min_open" pattern="[0-9]{1,4}"></td></tr>
+	  			<tr><td class="pos-err">Выявленная погрешность датчика в одну сторону:</td><td><input name="pos_err" pattern="[0-9]{1,4}"></td></tr>
+	  			<tr><td class="sub-btn"><div class="submit_bt">Сохранить</div></td></tr>
+	  		</tbody>
+		  	</table>
+	  	</div>
+	  	
+	  </div>
+
+
+<script>
+	
+var xhr = new XMLHttpRequest();
+
+function sendXML(path,func){
+  xhr.open('GET', path, true);
+  xhr.send();
+  xhr.onreadystatechange = func;
+
+}
+
+function getData(){
+
+  if (xhr.readyState != 4) return;
+
+  if (xhr.status == 200){
+  	let ss = xhr.responseText;
+  	$(".setup-tab").attr("sum",ss);
+
+
+  	let poss = 0;
+  	let posf = ss.indexOf("-");
+  	$("input[name='ip']").val(ss.substring(poss,posf));
+  	poss = ss.indexOf("-")+1;
+  	posf = ss.indexOf("-",poss);
+  	$("input[name='dns']").val(ss.substring(poss,posf));
+  	poss = posf;
+  	posf = ss.indexOf("-",poss+1);
+  	$("input[name='pos_max_open']").val(ss.substring(poss+1,posf));
+  	poss = posf;
+  	posf = ss.indexOf("-",poss+1);
+  	$("input[name='pos_min_open']").val(ss.substring(poss+1,posf));
+  	poss = posf;
+  	posf = ss.length;
+  	$("input[name='pos_err']").val(ss.substring(poss+1,posf));
+  } 
+}
+
+	
+$(document).ready(function() {
+	$(".setup-tab").attr("sum",setup_sum_build());	
+	sendXML('getdata', getData);
+	 
+});
+
+
+function setup_sum_build(){
+	let str = "";
+	str += $("input[name='ip']").val();
+	str += "-" + $("input[name='dns']").val();
+	str += "-" + $("input[name='pos_max_open']").val();
+	str += "-" + $("input[name='pos_min_open']").val();
+	str += "-" + $("input[name='pos_err']").val();
+	return str;
+}
+
+$("input").change(function(){
+	let ss = $(".setup-tab").attr("sum");
+	if(ss != setup_sum_build()){
+		$(".submit_bt").addClass("green");
+	}else{
+		$(".submit_bt").removeClass("green");
+	}
+$(".submit_bt").click(function(){
+	$(".setup-tab").attr("sum",setup_sum_build());
+	$(".submit_bt").removeClass("green");
+	
+	sendXML('setdata&sum=' + $(".setup-tab").attr("sum"), getData);
+});
+	
+});
+
+</script>
+
+
+</body>

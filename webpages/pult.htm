@@ -1,0 +1,374 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>5G-curtains mind control</title>
+  <link href="css/style.css" rel="stylesheet" type="text/css" />
+  <script type="text/javascript" src="js/jquery.js"></script>
+  <!-- <script type="text/javascript" src="js/site.js"></script> -->
+</head>
+<body class="gradient_bk">
+	<div class="svg-bk">
+	    <div class="svgbx">
+	            <svg > <!-- viewBox='0 0 100 100' -->
+	              <defs>
+	                  <linearGradient id="SVGID_1" gradientUnits="userSpaceOnUse" x1="0" y1="20%" x2="0" y2="0%">
+	                        <stop  offset="0" style="stop-color:#000000;stop-opacity:0"/>
+	                        <stop  offset="1" style="stop-color:#000000"/>
+	                  </linearGradient>
+	                  <linearGradient id="SVGID_2" gradientUnits="userSpaceOnUse" x1="0" y1="80%" x2="0" y2="100%">
+	                        <stop  offset="0" style="stop-color:#000000;stop-opacity:0"/>
+	                        <stop  offset="1" style="stop-color:#000000"/>
+	                  </linearGradient>
+	                  <mask id='mask-1' x='0' y='0' width='100%' height='100%'>
+	                      <rect id='main-rect0' x='0' y='0' width='100%' height='100%' fill='#fff' />
+	                      <rect id='main-rect1' x='0' y='0' width='100%' height='20%' fill='url(#SVGID_1)' /> 
+	                      <rect id='main-rect2' x='0' y='80%' width='100%' height='20%' fill='url(#SVGID_2)' />
+	                  </mask>
+	              </defs>
+	              
+	              <image width='100%' height='100%' xlink:href='https://source.unsplash.com/collection/827743/1200x600' mask='url(#mask-1)' />
+	          </svg> 
+	      </div>
+	  </div>
+
+	  <div class="header">
+	    <div class="header_wrp">
+	      <div class="menu">
+	        <a href="index.htm?h=100">Управление</a>
+	        <a class="active"  href="pult.htm">Расписание</a>
+	        <a href="setup.htm">Настройка</a>
+	        <a href="/edit">Редактор</a>
+	      </div>
+	    </div>
+	  </div>
+
+	  <div class="bodywrp">
+	  	<div class="tabwrp">
+		  	<table class="timetab">
+		  		<tbody>
+		  			
+		  		</tbody>
+		  	</table>
+	  	</div>
+	  </div>
+
+		<div class="fixedbk">
+			<div class="dialogbk">
+				<div class="dialogbk_bx">
+					<div class="dialogbk_ti">Добавить:</div>
+					<div class="dialogbk_bt dialogbk_bt_close" onclick='dialogbk_bt_close();'>X</div>
+					<div class="dialogbk_bt dialogbk_bt_ok" onclick='dialogbk_bt_ok();'>Ok</div>
+					<div class="dialogbk_bt dialogbk_bt_cancel" onclick='dialogbk_bt_close();'>Отмена</div>
+					<div class="dialogbk_cont">
+						<div class="dialogbk_tm_bx">
+							<span class="dialogbk_tm_ti">Время:</span>
+							<span class="dialogbk_tm_hr"></span>
+							<span class="dialogbk_tm_tx"> : </span>
+							<span class="dialogbk_tm_mi"></span>
+							<div class="dialogbk_tm_tab">
+								<div class="slidecontainer">
+								  <input type="range" min="0" max="23" value="0" class="slider" id="mytmHr">
+								</div>
+								<div class="slidecontainer">
+								  <input type="range" min="0" max="59" value="0" class="slider" id="mytmMi">
+								</div>
+							</div>
+						</div>
+
+						<div class="dialogbk_op_bx">
+							<span class="dialogbk_op_ti">Открыть на:</span>
+							<span class="dialogbk_op_pr"></span>
+							<span class="dialogbk_op_ti"> %</span>
+							<div class="dialogbk_op_tab">
+								<div class="slidecontainer">
+								  <input type="range" min="0" max="100" value="50" class="slider" id="myopRange">
+								</div>
+							</div>
+						</div>
+
+						<div class="dialogbk_tmp_bx">
+							<span class="dialogbk_tmp_ti">Темп. больше </span>
+							<span class="dialogbk_tmp_tmps"></span>
+							<span class="dialogbk_tmp_ti"> &deg;C</span>
+							<div class="dialogbk_tmp_tab">
+								<div class="slidecontainer">
+								  <input type="range" min="-9" max="40" value="20" class="slider" id="myTpm">
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>	
+			</div>
+		</div>
+
+
+<script>
+
+
+
+/*23501001511,10450752010,07200452210*/
+let request = '';
+var xhr = new XMLHttpRequest();
+$(document).ready(function() { sendXML('gettabl',getTable);});
+
+function sendXML(path,func){ xhr.open('GET', path, true); xhr.send(); xhr.onreadystatechange = func;}
+
+function getTable(){
+  if (xhr.readyState != 4) return;
+  if (xhr.status == 200){	request = xhr.responseText; } 
+  pult_tab_build();
+
+}
+
+function pult_tsort(){
+	let arr = $(".row_full");
+	let f_elem = $(".timetab tbody tr:nth-child(1)");
+	let sorted = false;
+	if(arr.length == 1){ return; }	
+	while(!sorted){
+		sorted = true;
+		for(i = 1; i < arr.length; i++){
+			aa1 = $(arr[i]);
+			aa0 = $(arr[i-1]);
+			
+			if(aa1.attr("sum") < aa0.attr("sum")){
+				f_elem.after(aa1);
+				arr = $(".row_full");
+				sorted = false;
+			}
+		}
+	}
+}
+
+function pult_send(){
+	pult_tsort();
+	let str = "settabl&t=";
+	let arr = $(".row_full");
+	if(arr.length == 1){ str += arr.attr("sum");}
+	else{
+		for(i = 0; i < arr.length; i++){
+			str += $(arr[i]).attr("sum");
+			if(i < (arr.length-1)){str += ",";}
+		}
+	}
+	sendXML(str,getTable);
+}
+
+
+
+function pult_tabchange_check(){
+
+	if($(".row_full").length > 0){$(".tab_send_bt").addClass("active");}else{$(".tab_send_bt").removeClass("active");}
+}
+
+
+function pult_tab_build(){
+  console.log(request.length);
+	let sum;
+	let str = '<tr><th>Акт.</th><th>Авт.</th><th>Время</th><th>Открыть на %</th><th>Если t &#x3E;,°C</th><th>Действие</th></tr>';
+	
+	if(request.indexOf(',') != -1){
+	  sum = request.split(','); for(i=0; i < sum.length; i++){str += pult_row_build(sum[i]);}
+	}
+	else if(request.length != 0){ str += pult_row_build(request);}
+  
+	str += pult_defrow_build();
+	$(".timetab tbody").html(str);
+}
+
+
+function pult_row_build(sum){
+  
+	let str = '<tr class="row_full" sum="' + sum + '">';
+	str += '<td class="td-act"><i>Акт.</i><div class="tab-chkbx tab-act ';if(sum[9] == 1){str += 'checked">';}else{str += 'unchecked">';}
+	str += '</div></td>';
+	str += '<td class="td-auto"><i>Авт.</i><div class="tab-chkbx tab-auto ';if(sum[10] == 1){str += 'checked">';}else{str += 'unchecked">';}
+	str += '</div></td>';
+	str += '<td class="td-time"><i>Время</i>';
+	str += sum.slice(0,2) + ' : ' + sum.slice(2,4);
+	str += '</td>';
+	str += '<td class="td-open"><i>Открыть на %</i><b>';
+	str += Number(sum.slice(4,7));
+	str += '</b></td>'; 
+	str += '<td class="td-temp"><i>Если t > °C</i><b>';
+	str += Number(sum.slice(7,9));
+	str += '</b></td>'; 
+	str += '<td class="td-action"><i>Действие</i>';
+	str += '<div class="tab_confirm_bt tab_bt">Ok</div><div class="tab_edit_bt tab_bt">Изм.</div><div class="tab_del_bt tab_bt">X</div>';
+	str += '</td></tr>'; 
+	return str;
+}
+
+function pult_defrow_build(){
+	let str = '<tr class="row_clear">';
+		str += '<td class="td-act"><i>Акт.</i><div class="tab-chkbx tab-act unchecked"></div></td>';
+		str += '<td class="td-auto"><i>Авт.</i><div class="tab-chkbx tab-auto unchecked"></div></td>';
+		str += '<td class="td-time"><i>Время</i>&#x2717;&#x2717; : &#x2717;&#x2717;</td>';
+		str += '<td class="td-open"><i>Открыть на %</i>&#x2717;&#x2717;&#x2717;</td>';
+		str += '<td class="td-temp"><i>Если t > °C</i>&#x2717;&#x2717;</td>';
+		str += '<td class="td-action"><i>Действие</i><div class="tab_add_bt tab_bt">Нов.</div><div class="tab_send_bt tab_bt">Отправить</div></td>';
+		str += '</tr>';
+		return str;
+}
+
+
+
+function pult_dialog_build(elem){
+	$(".dialogbk_cont").removeClass("newelem");
+
+	if(elem == 0){
+		$(".dialogbk_tm_hr").text("00");
+		$(".dialogbk_tm_mi").text("00");
+		$(".dialogbk_op_pr").text("100");
+		$(".dialogbk_op_tab div:nth-child(5)").addClass("green");
+		$(".dialogbk_tmp_tmps").text("20");
+		sliderhr.value = 0;slidermi.value = 0;slider.value = 100;slidertmp.value = 20;
+		$(".dialogbk_cont").addClass("newelem");
+	}else{
+		$(".dialogbk_tm_hr").text($(elem).find(".td-time").text().slice(-7,-5));
+		$(".dialogbk_tm_mi").text($(elem).find(".td-time").text().slice(-2));
+		$(".dialogbk_op_pr").text($(elem).find(".td-open b").text());
+		$(".dialogbk_tmp_tmps").text($(elem).find(".td-temp b").text());
+		sliderhr.value = $(elem).find(".td-time").text().slice(-7,-5);
+		slidermi.value = $(elem).find(".td-time").text().slice(-2);
+		slider.value = $(elem).find(".td-open b").text();
+		slidertmp.value = $(elem).find(".td-temp b").text();
+	}	
+}
+
+
+
+function pult_delrow(elem){
+	let titul = "Удалить:\n"
+	titul += "\nвремя: " + $(elem).find(".td-time").text().slice(-7);
+	titul += "\nоткрыть на: " + $(elem).find(".td-open b").text();
+	titul += " %\nпри t >: " + $(elem).find(".td-temp b").text() + " °C";
+	if(confirm(titul)){	$(elem).remove();};
+	pult_tabchange_check();
+	pult_tsort();
+}
+
+
+function pult_addrow(elem){
+	$(".dialogbk_ti").text("Добавить:");
+	$("body").addClass("editrow");
+	pult_dialog_build(0);
+}
+
+
+function pult_editrow(elem){
+	$(".dialogbk_ti").text("Изменить:");
+	$("body").addClass("editrow");
+	pult_dialog_build(elem);
+}
+
+function pult_confirm(elem){
+	if($(elem).find(".tab_confirm_bt").hasClass("active")){
+		$(elem).find(".tab_confirm_bt").removeClass("active");
+		$(elem).attr("sum",pult_sum_build(elem));
+		$(elem).removeClass("mark_elem");
+		$(".tab_send_bt").addClass("active");
+	}	
+}
+
+
+
+function pult_sum_build(elem){
+	if($(elem).hasClass("row_clear"))return;
+	let new_sum ="";
+		
+		new_sum += $(elem).find(".td-time").text().slice(-7,-5) + $(elem).find(".td-time").text().slice(-2);
+		new_sum += ("00" + $(elem).find(".td-open b").text()).slice(-3);
+		new_sum += ("0" + $(elem).find(".td-temp b").text()).slice(-2);
+		if($(elem).find(".tab-act").hasClass("checked")){new_sum += "1";}else{new_sum += "0";}
+		if($(elem).find(".tab-auto").hasClass("checked")){new_sum += "1";}else{new_sum += "0";}
+		
+		return new_sum;	
+}
+
+function pult_sum_check(elem, newsum){
+
+	if($(elem).attr('sum') === newsum){
+		$(elem).find(".tab_confirm_bt").removeClass("active");
+	}
+	else{
+		$(elem).find(".tab_confirm_bt").addClass("active");		
+	}
+}
+
+
+
+
+var slider = document.getElementById("myopRange");
+var sliderhr = document.getElementById("mytmHr");
+var slidermi = document.getElementById("mytmMi");
+var slidertmp = document.getElementById("myTpm");
+let parent;
+
+slider.oninput = function() { $(".dialogbk_op_pr").text(this.value);}
+sliderhr.oninput = function() { $(".dialogbk_tm_hr").text(("0" + this.value).slice(-2));}
+slidermi.oninput = function() { $(".dialogbk_tm_mi").text(("0" + this.value).slice(-2));}
+slidertmp.oninput = function() { $(".dialogbk_tmp_tmps").text(this.value);}
+	
+let tab = document.querySelectorAll(".timetab")[0];
+
+tab.onclick = function(event){
+let target = event.target;
+	if (target.tagName == 'DIV'){
+		parent = target.parentNode.parentNode;
+		$(parent).addClass("mark_elem");
+		
+		if($(target).hasClass("tab_del_bt")){pult_delrow(parent);}
+		if($(target).hasClass("tab_confirm_bt")){pult_confirm(parent);}
+		if($(target).hasClass("tab_edit_bt")){pult_editrow(parent);}
+		if($(target).hasClass("tab_add_bt")){pult_addrow(parent);}
+		if($(target).hasClass("tab_send_bt")){pult_send();}
+
+		if($(target).hasClass("tab-act")){
+			if($(target).hasClass("unchecked")){$(target).removeClass("unchecked");$(target).addClass("checked");
+			}else{$(target).removeClass("checked");$(target).addClass("unchecked");}
+			pult_sum_check(parent,pult_sum_build(parent));
+		}
+		if($(target).hasClass("tab-auto")){
+			if($(target).hasClass("unchecked")){$(target).removeClass("unchecked");$(target).addClass("checked");
+			}else{$(target).removeClass("checked");$(target).addClass("unchecked");}
+			pult_sum_check(parent,pult_sum_build(parent));
+		}
+	}	
+};
+
+
+function dialogbk_bt_ok(){
+	let elem = $(".mark_elem");
+	if(elem.hasClass("row_full")){
+		elem.find(".td-time").html("<i>Время</i>" + ("0" + sliderhr.value).slice(-2) + ' : ' + ("0" + slidermi.value).slice(-2));
+		elem.find(".td-open b").text(slider.value);
+		elem.find(".td-temp b").text(slidertmp.value);
+		
+		pult_sum_check(elem,pult_sum_build(elem));
+		elem.removeClass("mark_elem");
+	}else{
+		let sum = "";
+		sum += ("0" + sliderhr.value).slice(-2)  + ("0" + slidermi.value).slice(-2) + ("00" + slider.value).slice(-3) + ("0" + slidertmp.value).slice(-2) + "00";
+		sum = pult_row_build(sum);
+		$(".timetab").append(sum).find("tr:last-child").find(".tab_confirm_bt").addClass("active");
+		$(".timetab").append(elem);
+		elem.removeClass("mark_elem");
+	}
+	
+	$("body").removeClass("editrow");
+	pult_tabchange_check();
+	pult_tsort();
+	
+}
+
+function dialogbk_bt_close(){
+	let elem = $(".mark_elem").removeClass("mark_elem");
+	$("body").removeClass("editrow");
+}
+
+</script>
+
+</body>

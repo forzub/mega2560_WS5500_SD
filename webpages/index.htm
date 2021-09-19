@@ -1,0 +1,141 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>5G-curtains mind control</title>
+  <link href="css/style.css" rel="stylesheet" type="text/css" />
+  <script type="text/javascript" src="js/jquery.js"></script>
+  <!-- <script type="text/javascript" src="js/site.js"></script> -->
+</head>
+<body class="gradient_bk">
+  
+  <div class="svg-bk">
+    <div class="svgbx">
+            <svg > <!-- viewBox='0 0 100 100' -->
+              <defs>
+                  <linearGradient id="SVGID_1" gradientUnits="userSpaceOnUse" x1="0" y1="20%" x2="0" y2="0%">
+                        <stop  offset="0" style="stop-color:#000000;stop-opacity:0"/>
+                        <stop  offset="1" style="stop-color:#000000"/>
+                  </linearGradient>
+                  <linearGradient id="SVGID_2" gradientUnits="userSpaceOnUse" x1="0" y1="80%" x2="0" y2="100%">
+                        <stop  offset="0" style="stop-color:#000000;stop-opacity:0"/>
+                        <stop  offset="1" style="stop-color:#000000"/>
+                  </linearGradient>
+                  <mask id='mask-1' x='0' y='0' width='100%' height='100%'>
+                      <rect id='main-rect0' x='0' y='0' width='100%' height='100%' fill='#fff' />
+                      <rect id='main-rect1' x='0' y='0' width='100%' height='20%' fill='url(#SVGID_1)' /> 
+                      <rect id='main-rect2' x='0' y='80%' width='100%' height='20%' fill='url(#SVGID_2)' />
+                  </mask>
+              </defs>
+              
+              <image width='100%' height='100%' xlink:href='https://source.unsplash.com/collection/827743/1200x600' mask='url(#mask-1)' />
+          </svg> 
+      </div>
+  </div>
+
+
+  <div class="header">
+    <div class="header_wrp">
+      <div class="menu">
+        <a class="active" href="\">Управление</a>
+        <a  href="pult.htm">Расписание</a>
+        <a  href="setup.htm">Настройка</a>
+        <a  href="/edit">Редактор</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="bodywrp">
+
+        <div class="wcontrol_wrp">
+              <div class="wcontrol">
+                <div class="wcontrol_a wc1" onclick="sendXML('open?h=0',getXML());"></div>
+                <div class="wcontrol_a wc2" onclick="sendXML('open?h=25',getXML());"></div>
+                <div class="wcontrol_a wc3" onclick="sendXML('open?h=50',getXML());"></div>
+                <div class="wcontrol_a wc4" onclick="sendXML('open?h=75',getXML());"></div>
+                <div class="wcontrol_a wc5" onclick="sendXML('open?h=100',getXML());"></div>
+              </div>
+          </div>
+    
+    <div class="gradient1 blk"></div>
+    <div class="weather"></div>
+
+    
+  </div>
+  
+<script>
+var weather_json;
+var xhr = new XMLHttpRequest();
+
+function sendXML(path,func){
+  xhr.open('GET', path, true);
+  xhr.send();
+  xhr.onreadystatechange = func();
+
+}
+
+function getXML(){
+  if (xhr.readyState != 4) return;
+  if (xhr.status = 200) alert(xhr.responseText);
+}
+
+
+
+
+
+function weater_parser(element,index){
+      weather_json = element;
+  var html_string = "";
+  var div_weather_item = document.createElement("div");
+      div_weather_item.classList.add("weather_item");
+  var date = new Date(weather_json.dt * 1000);
+      
+
+      html_string += "<div class='weather_itm_time'><div class='weather_itm_h'><i>" + ('0' + (date.getHours() + 1)).slice(-2)+ "</i> <b>00</b></div>";
+      // html_string += ":" + ('0' + (date.getMinutes() + 1)).slice(-2);
+      // html_string += ":" + ('0' + (date.getSeconds() + 1)).slice(-2) ;
+      html_string += "<div class='weather_itm_date'><i>" + ('0' + date.getDate()).slice(-2);
+      html_string += "-" +  ('0' + (date.getMonth() + 1)).slice(-2);
+      html_string += "-" + date.getFullYear() + "</i></div></div>"; 
+
+      html_string += "<div><i></i><img src='http://openweathermap.org/img/w/";
+      html_string += weather_json.weather[0].icon + ".png'></div>";
+
+      html_string += "<div class='weather_itm_right'><i>" + weather_json.temp + "</i> &deg;C</div>";
+      // html_string += "<div class='weather_itm_right'><i>" + weather_json.pressure + "</i> МПа</div>";
+
+      div_weather_item.innerHTML = html_string;
+  return div_weather_item;
+}
+
+
+function onrequest(responsend){
+  var jsonstr = JSON.parse(responsend);
+  var div_weather_bx = document.createElement("div");
+      div_weather_bx.classList.add("weather_bx");
+
+  for(var i = 0; i < jsonstr.hourly.length; i++){
+    div_weather_bx.append(weater_parser(jsonstr.hourly[i],i));
+  }
+
+  var div_terget = document.querySelectorAll(".weather");
+      div_terget[0].append(div_weather_bx);
+}
+
+
+
+
+function ready(){
+var url = new URL("https://api.openweathermap.org/data/2.5/onecall");    
+    var request = new XMLHttpRequest();
+    var urlsend = new URL("?lat=50.0&lon=36.25&exclude=current,minutely,daily,alerts&units=metric&appid=577e97e93b979b2a3722ddd04f41716b", url);
+    request.open('GET', urlsend);
+    request.responseType = 'text';
+    request.onload = function() {onrequest(request.response);};
+    request.send();
+}  
+
+document.addEventListener("DOMContentLoaded", ready);
+</script>
+</body>
