@@ -41,10 +41,10 @@ void hardware_struct::Start(){
   if (SD.begin(SD_CARD_SS_PIN))
         {
           hasSD = true; 
-          Consoleln(F("SD Card initialized."));}    //  SD Card initialized.
+          Serial.println(F("SD Card initialized."));}    //  SD Card initialized.
         else{
           hasSD = false; 
-          Consoleln(F("SD Card not initialized.")); //  SD Card not initialized.
+          Serial.println(F("SD Card not initialized.")); //  SD Card not initialized.
           return;}          
   
   Console(F("LAN init > "));
@@ -94,6 +94,20 @@ void hardware_struct::systime_serial_prn(){
     itoa(tm.Second,prn,DEC); Serial.print(prn);    
 }
 //---------------------------------------------------------------------
+void hardware_struct::systime_str(char *time_str){
+  strcpy(time_str,"");
+    char prn[5];
+    RTC.read(tm);
+    if((tm.Hour) < 10){ strcat(time_str,"0");}
+    itoa(tm.Hour,prn,DEC); strcat(time_str,prn); strcat(time_str,":");
+    if((tm.Minute) < 10){ strcat(time_str,"0"); }
+    itoa(tm.Minute,prn,DEC); strcat(time_str,prn); strcat(time_str,":");
+    if((tm.Second) < 10){ strcat(time_str,"0"); }
+    itoa(tm.Second,prn,DEC); strcat(time_str,prn); strcat(time_str," "); 
+}
+
+
+//---------------------------------------------------------------------
 void hardware_struct::LAN_start(){
   //-- start w5500
   Lan_adapter = true; 
@@ -101,12 +115,12 @@ void hardware_struct::LAN_start(){
           Ethernet.begin(mac, ip, myDns);
           if (Ethernet.hardwareStatus() == EthernetNoHardware){
               Lan_adapter = false; 
-              Consoleln(F("Lan adapter was not found."));
+              Serial.println(F("Lan adapter was not found."));
               return;
           }else{
               if (Ethernet.linkStatus() == LinkOFF) {
                 Lan_connection = false; 
-                Consoleln(F("E-cable is not connected.")); 
+                Serial.println(F("E-cable is not connected.")); 
                 return;
                 }
               else{

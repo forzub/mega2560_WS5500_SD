@@ -4,48 +4,200 @@
 //--------------------- слушает порт ------------------------
 void server_struct::listener(){
   
-  client = server.available();
-  if(client){
+   client = server.available();
+   if(client){
+      HARD.Console(F("\n\nNew Client.\n"));
+      boolean read_title = true;
+      http_wachdog_timer = millis();
+      
+      
+      while (client.connected()){
+        if (client.available()){
+          //-------- чтение данных ----------------------- 
+          int len = client.available(); 
+          byte buff[80];
+ 
+          if (len > 80){len = 80;} 
+          if(is_content_count){content_count += len;}
+          client.read(buff, len);
+          bytecat(http_buf.buf, &http_buf.len, buff, len);
 
-    while(client.connected()){
-        int len = client.available();
-        if(len > 0){
-            byte buff[80];
-            if (len > 80) len = 80;
-            client.read(buff, len);
+          
+          //-------- чтение тєгов заголовка ------------------------
+            if(read_title)
+            {
+                    
+                char *point = strstr((char*)http_buf.buf,"\r\n");
 
-            Serial.write(buff, len);
+                while(point != NULL){
+                    char str_for_search[255]="";
+                    strncpy( str_for_search, (char*)http_buf.buf, point - (char*)http_buf.buf );
 
-          }else{
-              Serial.println("");
-          }
-    }
+                    Serial.print("prn> "); Serial.print(str_for_search);Serial.println("<");
 
-    //reqstrun();
-    client.stop();
-    clearvars();
+                    get_parsing(HTTP_GET, (char *)str_for_search);
+                    get_parsing(HTTP_POST, (char *)str_for_search);
+                    get_parsing(HTTP_PUT, (char *)str_for_search);
+                    get_parsing(HTTP_DELETE, (char *)str_for_search);
 
-    HARD.Console(F("Client disconnected."));
-    HARD.Console(F("Connection Time: "));
-  }
+                    char * st_point;
+                    char content_length_str[] PROGMEM = "Content-Length:";
+                    char boundary_str[] PROGMEM = "boundary=";
+                    st_point = strstr(str_for_search, content_length_str);
+                    if(st_point != NULL){
+                      strcpy(str_for_search,st_point + strlen(content_length_str) + strlen(" "));
+                      content_length = atoi(str_for_search);  
+                    }
+                    st_point = strstr(str_for_search, boundary_str);
+                    if(st_point != NULL){strcat(boundary,st_point + strlen(boundary_str));}     
+
+                    bytecpy(http_buf.buf, &http_buf.len, (byte *)point + strlen("\r\n"), http_buf.len - (point - (char*)http_buf.buf + strlen("\r\n") ) );
+                    if(strlen(str_for_search) < 2){read_title = false;}
+                    point = strstr((char*)http_buf.buf,"\r\n"); 
+                }    
+            }       
+        }   
+            //------------------- HTTP_WACHDOG ------------------------------
+            if( (millis() - http_wachdog_timer) > HTTP_WACHDOG_TIME ){HARD.Consoleln(F("http_wachdog_timer")); break;}
+            
+            //-------------- запрос PUT DELETE ------------------------------
+            if((!read_title) & (content_length > 0) & (method != HTTP_POST)){
+                if(!is_content_count){
+                  content_count = http_buf.len;
+                  is_content_count = true;
+                }
+
+                if((content_count) >= content_length){
+                  char str_for_search[255] = "";
+                  HARD.Consoleln(F("r-body:"));
+                  HARD.Consoleln((char*)http_buf.buf);
+                  
+                  char *point = strstr((char *)http_buf.buf,"\r\n");
+                  while(point != NULL){
+                    clear_str((char *)str_for_search, (int)sizeof(str_for_search));
+                    strncpy(str_for_search, (char *)http_buf.buf, point - (char *)http_buf.buf);
+                    bytecpy(http_buf.buf, &http_buf.len, (byte *)point + strlen("\r\n"), http_buf.len - (point - (char*)http_buf.buf + strlen("\r\n") ) );
+                    point = strstr((char *)http_buf.buf,"\r\n");
+                    if(strlen(str_for_search) < 2){
+                      break;
+                      }
+                  }
+                  strncat(filename,(char *)http_buf.buf,point - (char *)http_buf.buf);
+                  break;
+                }
+            }
+
+            //-------------- запрос GET ------------------------------
+            if((!read_title) & (content_length == 0)){
+              break;
+            }
+
+      } //while
+      
+      //returnOK();
+      reqst_run(); 
+      delay(1);
+      client.stop();
+      HARD.Consoleln(F("client disconnected"));
+      //HARD.Consoleln((char*)http_buf.buf);
+      printvars();
+      clearvars();
+      
+   }
+     
+}
+//-----------------------------------------------------------
+//-----------------------------------------------------------
+//-----------------------------------------------------------
+//-----------------------------------------------------------
+//-----------------------------------------------------------
+//-----------------------------------------------------------
+
+//--------------------- печать переменных -------------------
+void server_struct::printvars(){
+  HARD.Console(F("last len> ")); HARD.Consoleln(String(http_buf.len));
+  HARD.Console(F("method> ")); HARD.Consoleln(method_tx[method]);
+  HARD.Console(F("url_address> "));HARD.Consoleln(url_address);
+  HARD.Console(F("params> "));HARD.Consoleln(params);
+  HARD.Console(F("boundary> "));HARD.Consoleln(boundary);
+  HARD.Console(F("filename> "));HARD.Consoleln(filename);
+  HARD.Console(F("content count> ")); HARD.Consoleln(String(content_count));
+  HARD.Console(F("content length> ")); HARD.Consoleln(String(content_length));
 }
 
-
-
-//-----------------------------------------------------------
-//-----------------------------------------------------------
-//-----------------------------------------------------------
-//-----------------------------------------------------------
 //--------------------- очистка переменных ------------------
 void server_struct::clearvars(){
 
-  strcpy(servpath,"");
-  strcpy(filename,"");
-  strcpy(params,"");
-  strcpy(parseserver,"");
-  strcpy(boundary,"");
+// for(int i = 0; i < (int)sizeof(url_address); i++){url_address[i] = (char)NULL;}
+// for(int i = 0; i < (int)sizeof(filename); i++){filename[i] = (char)NULL;}
+// for(int i = 0; i < (int)sizeof(params); i++){params[i] = (char)NULL;}
+// for(int i = 0; i < (int)sizeof(boundary); i++){boundary[i] = (char)NULL;}
 
+  clear_str(url_address, (int)sizeof(url_address));
+  clear_str(filename, (int)sizeof(filename));
+  clear_str(params, (int)sizeof(params));
+  clear_str(boundary, (int)sizeof(boundary));
+
+  clear_buf();
+  content_length = 0;
+  content_count = 0;
+  is_content_count = false;
+  method = 0;
 }
+
+//------------------- парсинг запроса и параметров ----------
+void server_struct::get_parsing(byte gts, char *sourse){
+  
+  char *st_point = strstr(sourse, method_tx[gts]);
+  if(st_point != NULL){
+    method = gts; 
+    int len = strlen(sourse) - strlen(method_tx[gts]) - strlen(" ") - strlen(" HTTP/1.1");
+    strncpy(params, st_point + strlen(method_tx[gts]) + strlen(" "), len );    
+    st_point = strstr(params,"?");
+    if(st_point != NULL){
+        strncpy(url_address, params, st_point - params);
+        strcpy(params,st_point);
+        params[0] = '&';
+      } 
+      else{
+        strcpy(url_address, params);
+        strcpy(params,"");
+      }
+  }
+}
+                    
+
+
+//----------------- как strcpy только для byte ---------------
+void server_struct::bytecpy(byte * target, int * size, byte * sourse, int len){
+
+  for(int i = 0; i < len; i++){
+    target[i] = sourse[i];
+  }
+  *size = len;
+  target[*size] = '\0';
+}
+
+
+//----------------- как strcat только для byte ---------------
+void server_struct::bytecat(byte * target, int * size, byte * sourse, int len){
+  for(int i=0; i < len; i++){target[*size + i] = sourse[i];}
+  *size += len;
+  target[*size] = '\0';
+}
+
+
+//--------------------- очистка буера -----------------------
+void server_struct::clear_buf(){
+  for(int i = 0; i < (int)sizeof(http_buf.buf); i++){http_buf.buf[i] = (char)NULL;}
+  http_buf.len = 0;
+}
+//--------------------- очистка строк ------------------
+void server_struct::clear_str(char * mystr, int len){
+for(int i = 0; i < len; i++){mystr[i] = (char)NULL;}
+}
+
+
 
 //-----------------------------------------------------------
 //--------------------- получить аргумент -------------------
@@ -110,7 +262,7 @@ void server_struct::handleNotFound(){
     message += "\nMethod: ";
     message += (method == HTTP_GET)?"GET":"POST";
     message += "\npath: ";
-    message += servpath;
+    message += url_address;
     message += "\nArguments: ";
     message += params;
     send(404, "text/plain", message.c_str() );
@@ -118,7 +270,7 @@ void server_struct::handleNotFound(){
 //-----------------------------------------------------------
 //--------------------- отправка файла с SD карты -----------
 bool server_struct::loadFromSdCard(){
-  String path = String(servpath);
+  String path = String(url_address);
   String dataType = F("text/plain");
   if(path.endsWith(F("/"))){ path += F("index.htm");}
 
@@ -286,10 +438,10 @@ void server_struct::returnOK(){
 
 //-----------------------------------------------------------
 //--------------------- выполняет запросы -------------------
-void server_struct::reqstrun(){
-  if((String(servpath) == "/list")&(method == HTTP_GET)){     printDirectory(); }else
-  if((String(servpath) == "/edit")&(method == HTTP_DELETE)){  handleDelete();   }else
-  if((String(servpath) == "/edit")&(method == HTTP_PUT)){     handleCreate();   }else
+void server_struct::reqst_run(){
+  if((String(url_address) == "/list")&(method == HTTP_GET)){     printDirectory(); }else
+  if((String(url_address) == "/edit")&(method == HTTP_DELETE)){  handleDelete();   }else
+  if((String(url_address) == "/edit")&(method == HTTP_PUT)){     handleCreate();   }else
 
   { handleNotFound(); }
 
