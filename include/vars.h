@@ -70,6 +70,7 @@ struct hardware_struct{
   void Console(String ss);
   void Consoleln(const char ss);
   void Consoleln(String ss); 
+  void ConsoleTime();
 
   void sendNTPpacket(const char * address);
   void getNTPpacket();
@@ -139,7 +140,7 @@ struct server_struct{
   void printvars();
 
   void    send(int code, const char *Content_Type, const char *message);
-  boolean hasArg(const char *str);
+  boolean hasArg(char *str);
   String  arg(const char *str);
   void    returnFail(const char* msg);
   void    returnOK(); 

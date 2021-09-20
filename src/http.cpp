@@ -6,10 +6,15 @@ void server_struct::listener(){
   
    client = server.available();
    if(client){
-      HARD.Console(F("\n\nNew Client.\n"));
-      boolean read_title = true;
-      http_wachdog_timer = millis();
-      
+      HARD.Console(F("\n"));
+      HARD.ConsoleTime(); 
+      HARD.Console(F("New Client.\n"));
+        boolean read_title = true;
+        http_wachdog_timer = millis();
+        char tmp_file_name[50] = "";
+        boolean isFinish = false;
+        boolean isbody = false;
+        File dataFile;
       
       while (client.connected()){
         if (client.available()){
@@ -33,7 +38,7 @@ void server_struct::listener(){
                     char str_for_search[255]="";
                     strncpy( str_for_search, (char*)http_buf.buf, point - (char*)http_buf.buf );
 
-                    Serial.print("prn> "); Serial.print(str_for_search);Serial.println("<");
+                    //Serial.print("prn> "); Serial.print(str_for_search);Serial.println("<");
 
                     get_parsing(HTTP_GET, (char *)str_for_search);
                     get_parsing(HTTP_POST, (char *)str_for_search);
@@ -46,7 +51,7 @@ void server_struct::listener(){
                     st_point = strstr(str_for_search, content_length_str);
                     if(st_point != NULL){
                       strcpy(str_for_search,st_point + strlen(content_length_str) + strlen(" "));
-                      content_length = atoi(str_for_search);  
+                      content_length = atol(str_for_search);  
                     }
                     st_point = strstr(str_for_search, boundary_str);
                     if(st_point != NULL){strcat(boundary,st_point + strlen(boundary_str));}     
@@ -58,9 +63,10 @@ void server_struct::listener(){
             }       
         }   
             //------------------- HTTP_WACHDOG ------------------------------
-            if( (millis() - http_wachdog_timer) > HTTP_WACHDOG_TIME ){HARD.Consoleln(F("http_wachdog_timer")); break;}
+            if( (millis() - http_wachdog_timer) > HTTP_WACHDOG_TIME ){HARD.Consoleln(F("http_wachdog_timer")); dataFile.close(); break;}
             
             //-------------- запрос PUT DELETE ------------------------------
+
             if((!read_title) & (content_length > 0) & (method != HTTP_POST)){
                 if(!is_content_count){
                   content_count = http_buf.len;
@@ -68,22 +74,86 @@ void server_struct::listener(){
                 }
 
                 if((content_count) >= content_length){
-                  char str_for_search[255] = "";
+                  
                   HARD.Consoleln(F("r-body:"));
                   HARD.Consoleln((char*)http_buf.buf);
                   
                   char *point = strstr((char *)http_buf.buf,"\r\n");
                   while(point != NULL){
-                    clear_str((char *)str_for_search, (int)sizeof(str_for_search));
+                    char str_for_search[255] = "";
+                    //Serial.print("str_for_search>");Serial.println(str_for_search);
+                    //clear_str((char *)str_for_search, (int)sizeof(str_for_search));
+
                     strncpy(str_for_search, (char *)http_buf.buf, point - (char *)http_buf.buf);
                     bytecpy(http_buf.buf, &http_buf.len, (byte *)point + strlen("\r\n"), http_buf.len - (point - (char*)http_buf.buf + strlen("\r\n") ) );
                     point = strstr((char *)http_buf.buf,"\r\n");
                     if(strlen(str_for_search) < 2){
+                      isFinish = true;
                       break;
                       }
                   }
-                  strncat(filename,(char *)http_buf.buf,point - (char *)http_buf.buf);
-                  break;
+                  if(isFinish){
+                      strncat(filename,(char *)http_buf.buf,point - (char *)http_buf.buf);
+                      break;
+                  }
+                  
+                }
+            }
+
+            //-------------- запрос POST -----------------------------
+            if((!read_title) & (content_length > 0) & (method == HTTP_POST)){
+              if(!is_content_count){
+                  content_count = http_buf.len;
+                  is_content_count = true;  
+                }
+              
+              if(!isbody){   
+                  char *point = strstr((char *)http_buf.buf,"\r\n");
+                  while(point != NULL){
+                    char str_for_search[255] = "";
+                    strncpy(str_for_search, (char *)http_buf.buf, point - (char *)http_buf.buf);
+                    bytecpy(http_buf.buf, &http_buf.len, (byte *)point + strlen("\r\n"), http_buf.len - (point - (char*)http_buf.buf + strlen("\r\n") ) );
+                    
+                        char v_filename[] PROGMEM = "filename=\"";
+                        char *st_point = strstr(str_for_search, v_filename);
+                        if(st_point != NULL){
+                          point = strstr(st_point + strlen(v_filename), "\"");
+                          strncpy(filename,st_point + strlen(v_filename),point - (st_point + strlen(v_filename)) );  
+                        }
+
+                    point = strstr((char *)http_buf.buf,"\r\n");
+                    
+                    if(strlen(str_for_search) < 2){
+                        isbody = true;
+                        strcat(tmp_file_name, filename);
+                        char *point = strstr(tmp_file_name,"."); 
+                        strcpy(point + 1,"tmp");
+                        SD.remove(tmp_file_name);
+                      Serial.println(F(" bytes"));
+                      break;
+                      }
+                  }// while
+                }
+
+              if(isbody){
+                    int boundary_len = strlen((char *)F("--    --")) + strlen(boundary);
+                    if(http_buf.len > boundary_len){
+                      dataFile = SD.open(tmp_file_name, FILE_WRITE); 
+                      if(!dataFile){ Serial.println(F("SD card not ready")); dataFile.close(); break;}
+                      //Serial.write(http_buf.buf, http_buf.len - boundary_len);
+                      dataFile.write(http_buf.buf, http_buf.len - boundary_len); 
+                      dataFile.close();
+                      bytecpy(http_buf.buf, &http_buf.len, http_buf.buf + http_buf.len - boundary_len, boundary_len);
+                      http_wachdog_timer = millis();
+                      Serial.print("\r"); Serial.print(content_count); 
+                    }
+                      
+                      if((content_count) >= content_length) { 
+                        returnOK();
+                        Serial.println();
+                        break;
+                      }
+      
                 }
             }
 
@@ -99,6 +169,30 @@ void server_struct::listener(){
       delay(1);
       client.stop();
       HARD.Consoleln(F("client disconnected"));
+                        //-- если размері совпадают, перезаписіваем файлы
+                        if((method == HTTP_POST) & (content_count >= content_length)){
+                          SD.remove(filename);
+                          File sourseFile = SD.open(tmp_file_name);
+                          File targetFile = SD.open(filename, FILE_WRITE);
+                          int16_t len = 0;
+                          uint32_t filesize = 0;
+                          byte buf[80];
+
+                          while(sourseFile.available()){
+                            if((filesize + 80) < sourseFile.size()){
+                              len = 80; filesize += 80;
+                            }else{ 
+                              len = sourseFile.size() - filesize;
+                            }
+                            Serial.print("\r");Serial.print(filesize);
+                            sourseFile.read(buf, len);
+                            targetFile.write(buf, len);
+                          }
+                          sourseFile.close();
+                          targetFile.close(); 
+                          Serial.println();
+                        }
+
       //HARD.Consoleln((char*)http_buf.buf);
       printvars();
       clearvars();
@@ -115,14 +209,16 @@ void server_struct::listener(){
 
 //--------------------- печать переменных -------------------
 void server_struct::printvars(){
-  HARD.Console(F("last len> ")); HARD.Consoleln(String(http_buf.len));
+  HARD.ConsoleTime();
+  HARD.Console(F("\n"));
   HARD.Console(F("method> ")); HARD.Consoleln(method_tx[method]);
   HARD.Console(F("url_address> "));HARD.Consoleln(url_address);
   HARD.Console(F("params> "));HARD.Consoleln(params);
-  HARD.Console(F("boundary> "));HARD.Consoleln(boundary);
+  //HARD.Console(F("boundary> "));HARD.Consoleln(boundary);
   HARD.Console(F("filename> "));HARD.Consoleln(filename);
   HARD.Console(F("content count> ")); HARD.Consoleln(String(content_count));
   HARD.Console(F("content length> ")); HARD.Consoleln(String(content_length));
+  HARD.Console(F("\n"));
 }
 
 //--------------------- очистка переменных ------------------
@@ -228,11 +324,17 @@ String server_struct::arg(const char *str){
 //-----------------------------------------------------------
 //--------------------- проверить аргумент ------------------
 
-bool server_struct::hasArg(const char *str){
+bool server_struct::hasArg(char *str){
     char text[255] = "";
+    
     strcat(text,"&");
-    strcat(text,str); 
+    strcat(text,str);
     strcat(text,"=");
+
+    // Serial.print("hasArg->");Serial.println(str); 
+    // Serial.print("hasArg->");Serial.println(text);
+    // Serial.print("hasArg->");Serial.println(params);
+    
     if(strstr(params,text) != NULL){return true;}
     return false;  
 }
@@ -286,6 +388,7 @@ bool server_struct::loadFromSdCard(){
   else if(path.endsWith(F(".pdf"))) dataType = F("application/pdf");
   else if(path.endsWith(F(".zip"))) dataType = F("application/zip");
   else if(path.endsWith(F(".log"))) {}
+  else if(path.endsWith(F(".tmp"))) {}
 
   File dataFile = SD.open(path.c_str());
   if(dataFile.isDirectory()){
@@ -298,7 +401,8 @@ bool server_struct::loadFromSdCard(){
       dataFile.close();
       return false;
   }
-  if (hasArg((char*)F("download"))) dataType = F("application/octet-stream");
+  char v_dawnload[9] PROGMEM = "download";
+  if (hasArg(v_dawnload)){dataType = F("application/octet-stream"); Serial.println("is download");} 
   send(200, dataType.c_str(), "");
   
   unsigned long readsize = 0;
@@ -329,7 +433,7 @@ void server_struct::returnFail(const char* msg) {
 //-----------------------------------------------------------
 //--------------------- отправка в браузер списка файлов ----
 void server_struct::printDirectory() {
-  
+  //char tx_dir[4] PROGMEM = "dir";
   if(!hasArg("dir")){return returnFail("BAD ARGS");}  
   String path = arg("dir");
   if(path != "/" && !SD.exists((char *)path.c_str())) return returnFail("BAD PATH");

@@ -35,6 +35,7 @@ void hardware_struct::Start(){
   Serial.begin(9600);
   lcd.init();
   
+  ConsoleTime();
   Console(F("\nSerial init. LCD init. SD init > "));
 
   pinMode(SD_CARD_SS_PIN,OUTPUT);
@@ -366,3 +367,11 @@ void hardware_struct::Consoleln(const char ss){
 void hardware_struct::Consoleln(String ss){
     Serial.println(ss);
 }
+
+//---------------------------------------------------------------------
+void hardware_struct::ConsoleTime(){
+  char str[10] = "";
+    systime_str(str);
+    Serial.print("\n"); Serial.print(str); Serial.print(" ");
+}
+
