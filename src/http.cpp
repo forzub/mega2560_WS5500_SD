@@ -1,14 +1,18 @@
 #include "http.h"
 
+server_struct HTTP;
+EthernetServer server(80);
+
+
+
 //-----------------------------------------------------------
 //--------------------- слушает порт ------------------------
 void server_struct::listener(){
   
    client = server.available();
    if(client){
-      HARD.Console(F("\n"));
-      HARD.ConsoleTime(); 
-      HARD.Console(F("New Client.\n"));
+      Console(F("\n"));
+      Console(F("New Client.\n"));
         boolean read_title = true;
         http_wachdog_timer = millis();
         char tmp_file_name[50] = "";
@@ -25,6 +29,7 @@ void server_struct::listener(){
           if (len > 80){len = 80;} 
           if(is_content_count){content_count += len;}
           client.read(buff, len);
+          
           bytecat(http_buf.buf, &http_buf.len, buff, len);
 
           
@@ -63,7 +68,11 @@ void server_struct::listener(){
             }       
         }   
             //------------------- HTTP_WACHDOG ------------------------------
-            if( (millis() - http_wachdog_timer) > HTTP_WACHDOG_TIME ){HARD.Consoleln(F("http_wachdog_timer")); dataFile.close(); break;}
+            if( (millis() - http_wachdog_timer) > HTTP_WACHDOG_TIME ){
+              Consoleln(F("http_wachdog_timer")); 
+              dataFile.close(); 
+              break;
+              }
             
             //-------------- запрос PUT DELETE ------------------------------
 
@@ -75,8 +84,8 @@ void server_struct::listener(){
 
                 if((content_count) >= content_length){
                   
-                  HARD.Consoleln(F("r-body:"));
-                  HARD.Consoleln((char*)http_buf.buf);
+                  Consoleln(F("r-body:"));
+                  Consoleln((char*)http_buf.buf);
                   
                   char *point = strstr((char *)http_buf.buf,"\r\n");
                   while(point != NULL){
@@ -165,10 +174,12 @@ void server_struct::listener(){
       } //while
       
       //returnOK();
+
+
       reqst_run(); 
       delay(1);
       client.stop();
-      HARD.Consoleln(F("client disconnected"));
+      Consoleln(F("client disconnected"));
                         //-- если размері совпадают, перезаписіваем файлы
                         if((method == HTTP_POST) & (content_count >= content_length)){
                           SD.remove(filename);
@@ -189,11 +200,13 @@ void server_struct::listener(){
                             targetFile.write(buf, len);
                           }
                           sourseFile.close();
-                          targetFile.close(); 
+                          targetFile.close();
+                          SD.remove(tmp_file_name); 
                           Serial.println();
                         }
 
       //HARD.Consoleln((char*)http_buf.buf);
+      
       printvars();
       clearvars();
       
@@ -209,16 +222,15 @@ void server_struct::listener(){
 
 //--------------------- печать переменных -------------------
 void server_struct::printvars(){
-  HARD.ConsoleTime();
-  HARD.Console(F("\n"));
-  HARD.Console(F("method> ")); HARD.Consoleln(method_tx[method]);
-  HARD.Console(F("url_address> "));HARD.Consoleln(url_address);
-  HARD.Console(F("params> "));HARD.Consoleln(params);
+  Console(F("\n"));
+  Console(F("method> "));         Consoleln(method_tx[method]);
+  Console(F("url_address> "));    Consoleln(url_address);
+  Console(F("params> "));         Consoleln(params);
   //HARD.Console(F("boundary> "));HARD.Consoleln(boundary);
-  HARD.Console(F("filename> "));HARD.Consoleln(filename);
-  HARD.Console(F("content count> ")); HARD.Consoleln(String(content_count));
-  HARD.Console(F("content length> ")); HARD.Consoleln(String(content_length));
-  HARD.Console(F("\n"));
+  Console(F("filename> "));       Consoleln(filename);
+  Console(F("content count> "));  Consoleln(String(content_count));
+  Console(F("content length> ")); Consoleln(String(content_length));
+  Console(F("\n"));
 }
 
 //--------------------- очистка переменных ------------------
@@ -324,7 +336,7 @@ String server_struct::arg(const char *str){
 //-----------------------------------------------------------
 //--------------------- проверить аргумент ------------------
 
-bool server_struct::hasArg(char *str){
+bool server_struct::hasArg(const char *str){
     char text[255] = "";
     
     strcat(text,"&");
@@ -367,7 +379,7 @@ void server_struct::handleNotFound(){
     message += url_address;
     message += "\nArguments: ";
     message += params;
-    send(404, "text/plain", message.c_str() );
+    send(404, textplain, message.c_str() );
 }
 //-----------------------------------------------------------
 //--------------------- отправка файла с SD карты -----------
@@ -427,13 +439,12 @@ void server_struct::returnFail(const char* msg) {
   char message[100] = "";
   strcat(message,msg);
   strcat(message, "\r\n");
-  send(500, "text/plain", message);
+  send(500, textplain, message);
 }
 
 //-----------------------------------------------------------
 //--------------------- отправка в браузер списка файлов ----
 void server_struct::printDirectory() {
-  //char tx_dir[4] PROGMEM = "dir";
   if(!hasArg("dir")){return returnFail("BAD ARGS");}  
   String path = arg("dir");
   if(path != "/" && !SD.exists((char *)path.c_str())) return returnFail("BAD PATH");
@@ -537,8 +548,119 @@ void server_struct::handleDelete(){
 //--------------------- simply 200 --------------------------
 
 void server_struct::returnOK(){
-  send(200, "text/plain", "");
+  send(200, textplain, "");
 }
+
+//-----------------------------------------------------------
+void server_struct::set_table_on_SD(){
+  
+  if(SD.exists(table_filename)){SD.remove(table_filename);}
+  
+  File f = SD.open(table_filename, FILE_WRITE);
+  f.write(TABLE_FILE_HEADER);
+  f.write(' ');
+  f.write(arg("t").c_str(),arg("t").length());
+  f.close();
+
+  send(200, textplain, arg("t").c_str());
+  
+}
+
+
+//-----------------------------------------------------------
+void server_struct::get_table_from_SD(){
+
+  if(!SD.exists(table_filename)){return;}
+
+  File f = SD.open(table_filename);
+
+    if( ((byte)f.read()) != TABLE_FILE_HEADER ){
+      SD.remove(table_filename);
+    }else{
+      f.read();
+    }
+
+    String msg = "";
+    while(f.available()){
+      msg += (char)f.read();
+    }
+  f.close();
+  send(200, textplain, msg.c_str());
+}
+
+//-----------------------------------------------------------
+void server_struct::get_setup_from_SD(){
+  char result[45] = "";
+  char substr[5] = "";
+  itoa(HARD.ip[0], substr, 10);  strcat(result, substr);   strcat(result, ".");
+  itoa(HARD.ip[1], substr, 10);  strcat(result, substr);   strcat(result, ".");
+  itoa(HARD.ip[2], substr, 10);  strcat(result, substr);   strcat(result, ".");
+  itoa(HARD.ip[3], substr, 10);  strcat(result, substr);   strcat(result, "-");
+
+  itoa(HARD.myDns[0], substr, 10);  strcat(result, substr);   strcat(result, ".");
+  itoa(HARD.myDns[1], substr, 10);  strcat(result, substr);   strcat(result, ".");
+  itoa(HARD.myDns[2], substr, 10);  strcat(result, substr);   strcat(result, ".");
+  itoa(HARD.myDns[3], substr, 10);  strcat(result, substr);   strcat(result, "-");
+  
+  itoa(HARD.max_position, substr, 10);  strcat(result, substr);   strcat(result, "-");
+  itoa(HARD.min_position, substr, 10);  strcat(result, substr);   strcat(result, "-");
+  itoa(HARD.delta, substr, 10);  strcat(result, substr);   strcat(result, "-0");
+
+  send(200, textplain, result);
+  // "192.168.0.177-192.168.0.1-1024-250-3-0"
+}
+
+
+//-----------------------------------------------------------
+void server_struct::set_setup_on_SD(){
+  
+  char subtext[16] = "";
+
+  strcpy(subtext, arg("ip").c_str());  str_point_to_ip(HARD.ip, 4, subtext);
+  strcpy(subtext, arg("dns").c_str());  str_point_to_ip(HARD.myDns, 4, subtext);
+  strcpy(subtext, arg("pmax").c_str());  HARD.max_position = atoi(subtext);
+  strcpy(subtext, arg("pmin").c_str());  HARD.min_position = atoi(subtext);
+  strcpy(subtext, arg("del").c_str());  HARD.delta = atoi(subtext);
+  
+  HARD.mega_sets_save();
+  returnOK();
+}
+
+
+//-----------------------------------------------------------
+void str_point_to_ip(IPAddress &target, byte len, char* text){
+
+  char *point = strstr(text,".");
+  byte i = 0;
+  while(point != NULL){
+    char substr[4] = "";
+    strncpy(substr, text, point - text);
+    target[i] = (byte)atoi(substr);
+    i++;
+    if(i == len){return;}
+    strcpy(text,point + 1);
+    point = strstr(text,".");
+  }
+  target[i] = (byte)atoi(text);
+}
+
+//-----------------------------------------------------------
+ void open_handle(){   
+    byte request = (byte)atoi(HTTP.arg("h").c_str());
+
+    HARD.con_position = HARD.value_on_potentiometer();
+  
+    char responce[4] = "";
+    switch(request){
+      case 0: strcpy(responce, "wc1"); break;
+      case 25: strcpy(responce, "wc2"); break;
+      case 50: strcpy(responce, "wc3"); break;
+      case 75: strcpy(responce, "wc4"); break;
+      case 100: strcpy(responce, "wc5"); break;
+    }
+   HTTP.send(200, HTTP.textplain, responce);
+ }
+
 
 //-----------------------------------------------------------
 //--------------------- выполняет запросы -------------------
@@ -546,6 +668,11 @@ void server_struct::reqst_run(){
   if((String(url_address) == "/list")&(method == HTTP_GET)){     printDirectory(); }else
   if((String(url_address) == "/edit")&(method == HTTP_DELETE)){  handleDelete();   }else
   if((String(url_address) == "/edit")&(method == HTTP_PUT)){     handleCreate();   }else
+  if((String(url_address) == "/gettabl")&(method == HTTP_GET)){  get_table_from_SD();   }else
+  if((String(url_address) == "/settabl")&(method == HTTP_GET)){   set_table_on_SD();   }else
+  if((String(url_address) == "/getdata")&(method == HTTP_GET)){   get_setup_from_SD();   }else
+  if((String(url_address) == "/setdata")&(method == HTTP_GET)){   set_setup_on_SD();   }else
+  if((String(url_address) == "/open")&(method == HTTP_GET)){   open_handle();   }else
 
   { handleNotFound(); }
 

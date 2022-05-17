@@ -1,0 +1,33 @@
+GET /open?h=0 HTTP/1.1
+Host: 192.168.0.177   
+Connection: keep-alive
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36
+Accept: */*
+Referer: http://192.168.0.177/
+Accept-Encoding: gzip, deflate
+Accept-Language: ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7
+
+
+GET /favicon.ico HTTP/1.1
+Host: 192.168.0.177
+Connection: keep-alive
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36
+Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
+Referer: http://192.168.0.177/
+Accept-Encoding: gzip, deflate
+Accept-Language: ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7
+
+
+POST /edit HTTP/1.1
+Host: 192.168.0.177
+Connection: keep-alive
+Content-Length: 1068
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryDEwMIcRoMHsKsMZt
+Accept: */*
+Origin: http://192.168.0.177
+Referer: http://192.168.0.177/edit
+Accept-Encoding: gzip, deflate
+Accept-Language: ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7
+
+

@@ -6,8 +6,4 @@
 .vscode/ipch
 /.pio
 /.vscode
-/lib/Ethernet-master
-/lib/Time-master
-/lib/README
-/include/README
 /test
